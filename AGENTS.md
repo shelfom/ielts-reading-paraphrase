@@ -2,58 +2,63 @@
 
 ## Project Overview
 
-**ielts-reading-para** — An interactive IELTS reading comprehension web application. Displays reading passages with associated multiple-choice questions. Content is loaded from static JSON files.
+**ielts-reading-para** — An interactive IELTS reading paraphrase-pair matching application. Displays paraphrase pairs from Cambridge IELTS 11–19 in a card-matching interface. Users match "Question" side phrases with their "Passage" side equivalents.
 
 ## Tech Stack
 
-- **Build**: Vite 7 + TypeScript
-- **Server**: Express (serves API + static files)
-- **Styling**: Tailwind CSS 3
+- **Build**: Vite 5 + vanilla TypeScript config
+- **Styling**: Custom CSS (no framework)
+- **Language**: Vanilla JavaScript (ES modules)
 - **Package Manager**: pnpm (only)
 
 ## Directory Structure
 
 ```
-├── public/data/          # Reading passage JSON files + manifest
-├── server/
-│   ├── routes/index.ts   # API routes (health check)
-│   ├── server.ts         # Express entry point
-│   └── vite.ts           # Vite middleware integration
-├── src/
-│   ├── index.css         # Global styles (Tailwind + CSS vars)
-│   ├── index.ts          # Client entry
-│   ├── main.ts           # App initialization & shell layout
-│   ├── types.ts          # TypeScript interfaces for passage data
-│   └── utils/
-│       └── data-loader.ts # Fetches passage JSON from /data/
-├── index.html            # HTML entry
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
+├── index.html          # HTML entry point
+├── styles.css          # All styles (light/dark theme via CSS vars)
+├── app.js              # Application logic (matching, scoring, navigation)
+├── sections.js         # Exercise data (window.__SECTIONS__)
+├── vite.config.ts      # Vite configuration
+├── package.json        # Dependencies & scripts
+├── .coze               # Sandbox build/run configuration
+└── dist/               # Production build output (gitignored)
 ```
 
 ## Commands
 
-| Command           | Description                   |
-| ----------------- | ----------------------------- |
-| `pnpm dev`        | Start dev server (HMR)        |
-| `pnpm build`      | Build for production          |
-| `pnpm start`      | Start production server       |
-| `pnpm ts-check`   | TypeScript type check         |
-| `pnpm lint`       | ESLint check                  |
-| `pnpm validate`   | Run ts-check + lint in parallel |
+| Command         | Description                   |
+| --------------- | ----------------------------- |
+| `pnpm dev`      | Start dev server (HMR)        |
+| `pnpm build`    | Build for production          |
+| `pnpm preview`  | Preview production build      |
 
 ## Data Contract
 
-Content is loaded from `public/data/`:
-- `manifest.json` — array of passage metadata (id, title, filename, difficulty, topic)
-- `<filename>.json` — individual passage with content + questions
+Exercise data lives in `sections.js` as `window.__SECTIONS__` — an array of section objects:
 
-See `src/types.ts` for full TypeScript interfaces (`ReadingPassage`, `Question`, `QuestionOption`).
+```ts
+interface Section {
+  book: number;      // Cambridge IELTS book number (11–19)
+  test: number;      // Test number within the book
+  passage: number;   // Passage number within the test
+  title: string;     // Passage title
+  pairs: Array<{
+    w: string;       // "Question" side (word/phrase to paraphrase)
+    p: string;       // "Passage" side (paraphrased equivalent)
+  }>;
+}
+```
+
+## Key Behaviors
+
+- **Theme toggle**: Light/dark via `data-theme="dark"` on `<html>`, persisted in localStorage
+- **Progress tracking**: Score per passage, round-based progression
+- **Passage completion overlay**: Stays open until user clicks its own Next button
+- **Navigation guard (v12)**: Carried-input guard prevents accidental navigation during active matching
 
 ## Coding Conventions
 
-- TypeScript strict mode; no implicit `any`
-- All function parameters must be typed
-- Use Tailwind utility classes for styling; CSS variables for theming
-- Prefer `const` over `let`; avoid `as any`
+- Vanilla JS with ES modules; no framework
+- CSS custom properties for theming
+- All function parameters should be typed where practical
+- Do not alter learning data, interaction patterns, or branding

@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   server: {
-    port: 5000,
+    port: parseInt(process.env.DEPLOY_RUN_PORT || '5000', 10),
     host: '0.0.0.0',
     allowedHosts: true,
     hmr: {
@@ -16,5 +16,9 @@ export default defineConfig({
       usePolling: true,
       interval: 100,
     }
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
   },
 });

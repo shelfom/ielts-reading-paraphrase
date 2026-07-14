@@ -1,16 +1,10 @@
 [project]
-requires = [ "nodejs-24" ]
-template = "vite"
-version = "0.0.28"
-appliedPatches = [ ]
+requires = ["nodejs-24"]
 
 [dev]
-build = [ "bash", "./scripts/prepare.sh" ]
-run = [ "bash", "./scripts/dev.sh" ]
-validate = [ "bash", "./scripts/validate.sh" ]
-deps = [ "git" ]
+build = ["pnpm", "install"]
+run = ["pnpm", "run", "dev"]
 
 [deploy]
-build = [ "bash", "./scripts/build.sh" ]
-run = [ "bash", "./scripts/start.sh" ]
-deps = [ "git" ]
+build = ["bash", "-c", "pnpm install && pnpm run build"]
+run = ["bash", "-c", "npx serve dist -l ${DEPLOY_RUN_PORT} -s"]
