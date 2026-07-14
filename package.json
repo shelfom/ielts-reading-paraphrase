@@ -1,7 +1,7 @@
 {
-  "name": "projects",
+  "name": "ielts-reading-para",
   "version": "1.0.0",
-  "description": "Vanilla TypeScript application with Express + Vite (HTML + CSS + TS + Node API)",
+  "description": "IELTS Reading Paragraph — interactive reading comprehension app",
   "scripts": {
     "build": "bash ./scripts/build.sh",
     "dev": "bash ./scripts/dev.sh",
@@ -21,7 +21,7 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.5",
     "autoprefixer": "^10.4.20",
-    "coze-coding-dev-sdk": "^0.7.16",
+    "coze-coding-dev-sdk": "^0.7.24",
     "esbuild": "^0.24.2",
     "eslint": "^9",
     "eslint-plugin-import": "^2.32.0",
