@@ -323,6 +323,7 @@
     "your future band score says hello",
     "cool down for one second, genius",
     "next round, same swagger",
+    "Book 20 just learned who it is dealing with",
   ];
 
   function pepTalkFor(sectionIndex) {

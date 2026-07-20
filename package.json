@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "build:data:book20": "node scripts/integrate-book20.mjs",
+    "test": "node --test",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0"
   },
