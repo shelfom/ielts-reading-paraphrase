@@ -56,6 +56,6 @@ test("all 120 passages receive distinct completion messages", () => {
 
 test("public copy and data release identify Books 11–20", () => {
   assert.match(html, /Cambridge IELTS 11–20/);
-  assert.match(html, /sections\.js\?v=6/);
+  assert.match(html, /sections\.js\?v=7/);
   assert.match(html, /enhance biodiversity → create refuges for species threatened by predation/);
 });
