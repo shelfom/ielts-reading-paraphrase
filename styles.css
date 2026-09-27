@@ -1091,22 +1091,28 @@ h1 {
    Overflow-exception fallback: when a card's text still overflows at 10px,
    allow the board and page to grow vertically and scroll.
    Activated by JS adding .has-overflow-exception to <html>.
+   These scoped rules must outrank base html/body height/overflow and
+   app-shell grid-template-rows so long card columns contribute intrinsic
+   height and Next/footer flow below the expanded board.
    ========================================================================== */
-html.has-overflow-exception {
-  overflow-y: auto;
-}
-
+html.has-overflow-exception,
 html.has-overflow-exception body {
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
 html.has-overflow-exception .app-shell {
   height: auto;
   min-height: 100dvh;
+  overflow: visible;
+  grid-template-rows: auto auto auto auto auto;
 }
 
 html.has-overflow-exception .match-board {
   overflow: visible;
+  grid-template-rows: auto auto;
 }
 
 html.has-overflow-exception .card-column {
