@@ -58,7 +58,7 @@ test("all 120 passages receive distinct completion messages", () => {
 
 test("public copy and data release identify Books 11–20", () => {
   assert.match(html, /Cambridge IELTS 11–20/);
-  assert.match(html, /sections\.js\?v=contents-v19/);
+  assert.match(html, /sections\.js\?v=contents-release-20260927/);
   assert.match(html, /enhance biodiversity → create refuges for species threatened by predation/);
 });
 
@@ -176,10 +176,10 @@ test("passageTitle heading has tabindex for programmatic focus", () => {
   assert.match(html, /id="passageTitle"\s+tabindex="-1"/);
 });
 
-test("asset query strings bumped to contents-v19 for cache busting", () => {
-  assert.match(html, /styles\.css\?v=contents-v19/);
-  assert.match(html, /app\.js\?v=contents-v19/);
-  assert.match(html, /sections\.js\?v=contents-v19/);
+test("asset query strings bumped to contents-release-20260927 for cache busting", () => {
+  assert.match(html, /styles\.css\?v=contents-release-20260927/);
+  assert.match(html, /app\.js\?v=contents-release-20260927/);
+  assert.match(html, /sections\.js\?v=contents-release-20260927/);
 });
 
 test("overflow-exception fallback CSS exists with scoped selectors", () => {
