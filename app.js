@@ -31,6 +31,8 @@
     celebrationNext: $("celebrationNext"),
     finishDialog: $("finishDialog"),
     finishRestart: $("finishRestart"),
+    celebrationContentsBtn: $("celebrationContentsBtn"),
+    finishContentsBtn: $("finishContentsBtn"),
   };
 
   const rounds = [];
@@ -107,7 +109,8 @@
 
   function openContents() {
     contentsOpener = document.activeElement;
-    cancelTimers();
+    state.contentsOpen = true;
+    pauseTimers();
     updateContentsCurrent();
     elements.contentsDialog.showModal();
     const currentBtn = elements.contentsList.querySelector(".contents-book-btn.is-current") ||
@@ -117,6 +120,8 @@
 
   function closeContents() {
     elements.contentsDialog.close();
+    state.contentsOpen = false;
+    resumeTimers();
     const opener = contentsOpener;
     contentsOpener = null;
     if (opener && opener.isConnected) {
@@ -126,18 +131,33 @@
     }
   }
 
+  function clearTransientRunState(roundIndex) {
+    const run = state.runs.get(roundIndex);
+    if (!run) return;
+    run.selected = null;
+    run.completing = false;
+  }
+
   function jumpToBook(book) {
     const entry = bookEntries.find((e) => e.book === book);
     if (!entry || entry.firstRoundIndex < 0) return;
+    const sourceRoundIndex = state.roundIndex;
     cancelTimers();
     state.celebrationOpen = false;
     state.celebrationPointerStarted = false;
+    state.contentsOpen = false;
     elements.passageCelebration.hidden = true;
     elements.finishDialog.hidden = true;
     elements.contentsDialog.close();
     contentsOpener = null;
+    clearTransientRunState(sourceRoundIndex);
+    clearTransientRunState(entry.firstRoundIndex);
     state.roundIndex = entry.firstRoundIndex;
     render();
+    const targetRun = state.runs.get(entry.firstRoundIndex);
+    if (targetRun && targetRun.matched.size === currentRound().pairs.length) {
+      setInstruction("Round completed. Restart to practise again, or Next to continue.");
+    }
     elements.passageTitle.focus({ preventScroll: true });
   }
 
@@ -172,22 +192,51 @@
     celebrationOpen: false,
     celebrationOpenedAt: 0,
     celebrationPointerStarted: false,
+    pausedTimers: [],
+    contentsOpen: false,
   };
 
   function schedule(callback, delay) {
     const token = state.navToken;
+    const createdAt = performance.now();
     const timer = window.setTimeout(() => {
       state.timers.delete(timer);
       if (token === state.navToken) callback();
     }, delay);
     state.timers.add(timer);
+    timer.__cb = callback;
+    timer.__delay = delay;
+    timer.__createdAt = createdAt;
+    timer.__token = token;
     return timer;
   }
 
   function cancelTimers() {
     state.timers.forEach((timer) => window.clearTimeout(timer));
     state.timers.clear();
+    state.pausedTimers = [];
     state.navToken += 1;
+  }
+
+  function pauseTimers() {
+    const now = performance.now();
+    state.pausedTimers = [];
+    state.timers.forEach((timer) => {
+      const elapsed = now - timer.__createdAt;
+      const remaining = Math.max(0, timer.__delay - elapsed);
+      state.pausedTimers.push({ cb: timer.__cb, remaining, token: timer.__token });
+      window.clearTimeout(timer);
+    });
+    state.timers.clear();
+  }
+
+  function resumeTimers() {
+    const paused = state.pausedTimers;
+    state.pausedTimers = [];
+    for (const entry of paused) {
+      if (entry.token !== state.navToken) continue;
+      schedule(entry.cb, entry.remaining);
+    }
   }
 
   function currentRound() {
@@ -573,6 +622,26 @@
   });
   elements.celebrationNext.addEventListener("click", advanceAfterCelebration);
   elements.finishRestart.addEventListener("click", restartCourse);
+  elements.celebrationContentsBtn.addEventListener("click", () => {
+    contentsOpener = elements.celebrationContentsBtn;
+    state.contentsOpen = true;
+    pauseTimers();
+    updateContentsCurrent();
+    elements.contentsDialog.showModal();
+    const currentBtn = elements.contentsList.querySelector(".contents-book-btn.is-current") ||
+      elements.contentsList.querySelector(".contents-book-btn");
+    if (currentBtn) currentBtn.focus();
+  });
+  elements.finishContentsBtn.addEventListener("click", () => {
+    contentsOpener = elements.finishContentsBtn;
+    state.contentsOpen = true;
+    pauseTimers();
+    updateContentsCurrent();
+    elements.contentsDialog.showModal();
+    const currentBtn = elements.contentsList.querySelector(".contents-book-btn.is-current") ||
+      elements.contentsList.querySelector(".contents-book-btn");
+    if (currentBtn) currentBtn.focus();
+  });
   elements.themeButton.addEventListener("click", () => {
     setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
   });
@@ -580,8 +649,8 @@
   document.addEventListener("keydown", (event) => {
     if (state.celebrationOpen) return;
     if (elements.contentsDialog.open) return;
-    if (event.altKey && event.key === "ArrowLeft") goBack();
-    if (event.altKey && event.key === "ArrowRight") goNext();
+    if (event.altKey && event.key === "ArrowLeft" && !elements.contentsDialog.open) goBack();
+    if (event.altKey && event.key === "ArrowRight" && !elements.contentsDialog.open) goNext();
   });
 
   const queryTheme = new URLSearchParams(location.search).get("theme");

@@ -549,7 +549,6 @@ h1 {
 .celebration-next {
   position: relative;
   width: 132px;
-  margin-top: 30px;
   background: color-mix(in srgb, var(--accent-soft) 52%, var(--paper));
   border-color: color-mix(in srgb, var(--accent) 48%, var(--line-strong));
 }
@@ -557,6 +556,45 @@ h1 {
 .celebration-next:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent);
   outline-offset: 4px;
+}
+
+.celebration-actions,
+.finish-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.celebration-contents-btn,
+.finish-contents-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  transition: border-color 160ms ease, color 160ms ease;
+}
+
+.celebration-contents-btn:hover,
+.finish-contents-btn:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.celebration-contents-btn:focus-visible,
+.finish-contents-btn:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  outline-offset: 2px;
 }
 
 .finish-dialog {
@@ -641,8 +679,15 @@ h1 {
   padding: 24px;
   border: none;
   background: transparent;
+}
+
+.contents-dialog[open] {
   display: grid;
   place-items: center;
+}
+
+.contents-dialog:not([open]) {
+  display: none;
 }
 
 .contents-dialog::backdrop {
@@ -929,7 +974,7 @@ h1 {
     font-size: 0.68rem;
   }
 
-  .contents-dialog {
+  .contents-dialog[open] {
     padding: 12px;
     align-items: end;
   }
