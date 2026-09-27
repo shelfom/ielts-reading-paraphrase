@@ -56,7 +56,7 @@ test("all 120 passages receive distinct completion messages", () => {
 
 test("public copy and data release identify Books 11–20", () => {
   assert.match(html, /Cambridge IELTS 11–20/);
-  assert.match(html, /sections\.js\?v=7/);
+  assert.match(html, /sections\.js\?v=contents-v16/);
   assert.match(html, /enhance biodiversity → create refuges for species threatened by predation/);
 });
 
@@ -144,4 +144,38 @@ test("contents dialog blocks navigation while open", () => {
   const keydownMatch = appSource.match(/document\.addEventListener\("keydown",[\s\S]*?\}\);/);
   assert.ok(keydownMatch);
   assert.match(keydownMatch[0], /elements\.contentsDialog\.open/);
+});
+
+test("jumpToBook clears transient state for ALL runs, not just source/target", () => {
+  // The fix: iterate all runs keys instead of only source + target
+  assert.match(appSource, /for\s*\(const\s+roundIndex\s+of\s+state\.runs\.keys\(\)\)/);
+  assert.match(appSource, /clearTransientRunState\(roundIndex\)/);
+  // Must NOT have the old two-line pattern
+  const jumpBody = appSource.match(/function jumpToBook\(book\)\s*\{[\s\S]*?elements\.passageTitle\.focus/);
+  assert.ok(jumpBody, "jumpToBook function found");
+  assert.equal(jumpBody[0].includes("clearTransientRunState(sourceRoundIndex)"), false,
+    "must not clear only source round");
+  assert.equal(jumpBody[0].includes("clearTransientRunState(entry.firstRoundIndex)"), false,
+    "must not clear only target round");
+});
+
+test("render() shows completion instruction for any fully matched settled run", () => {
+  // The instruction decision must be in render(), not in jumpToBook
+  assert.match(appSource, /run\.matched\.size === round\.pairs\.length && !run\.completing/);
+  assert.match(appSource, /Round completed\. Restart to practise again, or Next to continue\./);
+  // jumpToBook must NOT contain the instruction logic
+  const jumpBody = appSource.match(/function jumpToBook\(book\)\s*\{[\s\S]*?elements\.passageTitle\.focus/);
+  assert.ok(jumpBody);
+  assert.equal(jumpBody[0].includes("Round completed"), false,
+    "jumpToBook must not contain completion instruction logic");
+});
+
+test("passageTitle heading has tabindex for programmatic focus", () => {
+  assert.match(html, /id="passageTitle"\s+tabindex="-1"/);
+});
+
+test("asset query strings bumped to contents-v16 for cache busting", () => {
+  assert.match(html, /styles\.css\?v=contents-v16/);
+  assert.match(html, /app\.js\?v=contents-v16/);
+  assert.match(html, /sections\.js\?v=contents-v16/);
 });

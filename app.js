@@ -152,14 +152,12 @@ import { createTimerManager } from "./timer-manager.mjs";
     elements.finishDialog.hidden = true;
     elements.contentsDialog.close();
     contentsOpener = null;
-    clearTransientRunState(sourceRoundIndex);
-    clearTransientRunState(entry.firstRoundIndex);
+    // Clear transient state for ALL runs since cancelTimers invalidated all callbacks
+    for (const roundIndex of state.runs.keys()) {
+      clearTransientRunState(roundIndex);
+    }
     state.roundIndex = entry.firstRoundIndex;
     render();
-    const targetRun = state.runs.get(entry.firstRoundIndex);
-    if (targetRun && targetRun.matched.size === currentRound().pairs.length) {
-      setInstruction("Round completed. Restart to practise again, or Next to continue.");
-    }
     elements.passageTitle.focus({ preventScroll: true });
   }
 
@@ -308,7 +306,13 @@ import { createTimerManager } from "./timer-manager.mjs";
     elements.roundLabel.textContent = `Round ${round.roundIndex + 1} of ${round.roundTotal}`;
     elements.backButton.disabled = state.roundIndex === 0;
     elements.nextButton.textContent = state.roundIndex === rounds.length - 1 ? "Finish ›" : "Next ›";
-    setInstruction("Choose either side, then find its match.");
+    // If this run is fully matched and settled (no pending completion timer),
+    // show the concise completion instruction instead of the default prompt.
+    if (run.matched.size === round.pairs.length && !run.completing) {
+      setInstruction("Round completed. Restart to practise again, or Next to continue.");
+    } else {
+      setInstruction("Choose either side, then find its match.");
+    }
 
     round.pairs.forEach((pair, pairIndex) => {
       const slot = makeCard("left", pairIndex, pair.w);
