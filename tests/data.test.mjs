@@ -6,6 +6,8 @@ import vm from "node:vm";
 const root = new URL("../", import.meta.url);
 const sectionsSource = fs.readFileSync(new URL("sections.js", root), "utf8");
 const appSource = fs.readFileSync(new URL("app.js", root), "utf8");
+const appJs = appSource; // alias for clarity
+const css = fs.readFileSync(new URL("styles.css", root), "utf8");
 const html = fs.readFileSync(new URL("index.html", root), "utf8");
 const context = { window: {} };
 vm.runInNewContext(sectionsSource, context);
@@ -56,7 +58,7 @@ test("all 120 passages receive distinct completion messages", () => {
 
 test("public copy and data release identify Books 11–20", () => {
   assert.match(html, /Cambridge IELTS 11–20/);
-  assert.match(html, /sections\.js\?v=contents-v18/);
+  assert.match(html, /sections\.js\?v=contents-v19/);
   assert.match(html, /enhance biodiversity → create refuges for species threatened by predation/);
 });
 
@@ -174,8 +176,84 @@ test("passageTitle heading has tabindex for programmatic focus", () => {
   assert.match(html, /id="passageTitle"\s+tabindex="-1"/);
 });
 
-test("asset query strings bumped to contents-v18 for cache busting", () => {
-  assert.match(html, /styles\.css\?v=contents-v18/);
-  assert.match(html, /app\.js\?v=contents-v18/);
-  assert.match(html, /sections\.js\?v=contents-v18/);
+test("asset query strings bumped to contents-v19 for cache busting", () => {
+  assert.match(html, /styles\.css\?v=contents-v19/);
+  assert.match(html, /app\.js\?v=contents-v19/);
+  assert.match(html, /sections\.js\?v=contents-v19/);
+});
+
+test("overflow-exception fallback CSS exists with scoped selectors", () => {
+  assert.match(
+    css,
+    /html\.has-overflow-exception/,
+    "must have html-level overflow-exception class"
+  );
+  assert.match(
+    css,
+    /--exception-min-card-height/,
+    "must use CSS custom property for min card height"
+  );
+  assert.match(
+    css,
+    /html\.has-overflow-exception\s+\.card-column/,
+    "must scope card-column override to exception class"
+  );
+});
+
+test("fitCardText has oscillation prevention and proper font floor", () => {
+  assert.match(
+    appJs,
+    /MIN_MOBILE_FONT\s*=\s*10/,
+    "MIN_MOBILE_FONT must be 10px"
+  );
+  assert.match(
+    appJs,
+    /lastFallbackKey/,
+    "must have oscillation prevention cache key"
+  );
+  assert.match(
+    appJs,
+    /lastFallbackMinHeight/,
+    "must have oscillation prevention min height cache"
+  );
+  assert.match(
+    appJs,
+    /has-overflow-exception/,
+    "must toggle overflow-exception class"
+  );
+  assert.match(
+    appJs,
+    /--exception-min-card-height/,
+    "must set CSS custom property for fallback height"
+  );
+});
+
+test("fitCardText always reapplies fallback when overflow detected (no conditional skip)", () => {
+  // Extract the fitCardText function body
+  const fitFnMatch = appJs.match(/function fitCardText\(\)\s*\{([\s\S]*?)\n  \}/);
+  assert.ok(fitFnMatch, "must have fitCardText function");
+  const fitBody = fitFnMatch[1];
+
+  // Verify the fallback application is NOT guarded by a key-change condition
+  // The bug was: if (fallbackKey !== lastFallbackKey) { ... apply fallback ... }
+  // This caused the second identical pass to skip reapplication after baseline reset
+  assert.doesNotMatch(
+    fitBody,
+    /if\s*\(\s*fallbackKey\s*!==\s*lastFallbackKey/,
+    "must NOT have conditional key-change guard that skips fallback reapplication"
+  );
+
+  // Verify fallback is applied unconditionally when maxOverflowHeight > 0
+  assert.match(
+    fitBody,
+    /if\s*\(\s*maxOverflowHeight\s*>\s*0\s*\)\s*\{[\s\S]*?classList\.add\(\s*["']has-overflow-exception["']\s*\)/,
+    "must apply fallback class whenever maxOverflowHeight > 0"
+  );
+
+  // Verify Math.ceil is used for sufficient space
+  assert.match(
+    fitBody,
+    /Math\.ceil\s*\(\s*maxOverflowHeight\s*\)/,
+    "must use Math.ceil for required height to ensure sufficient space"
+  );
 });

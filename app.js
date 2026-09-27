@@ -333,16 +333,42 @@ import { createTimerManager } from "./timer-manager.mjs";
 
   /* ── Measured text fitter (app-level, called from render + resize observer) ── */
   const MIN_MOBILE_FONT = 10; // px floor — never shrink below readable size
+  const EXCEPTION_SAFETY_MARGIN = 4; // px extra space for fallback cards
+
+  // Oscillation prevention: cache the last computed fallback state
+  let lastFallbackKey = null; // `${roundIndex}-${viewportWidth}-${maxTextHeight}`
+  let lastFallbackMinHeight = 0;
+
+  function measureCardTextHeight(card) {
+    const range = document.createRange();
+    range.selectNodeContents(card);
+    const rects = range.getClientRects();
+    let textHeight = 0;
+    for (let i = 0; i < rects.length; i++) {
+      textHeight += rects[i].height;
+    }
+    return textHeight;
+  }
 
   function fitCardText() {
-    // Desktop uses CSS only; clear any leftover inline overrides
+    // Desktop uses CSS only; clear any leftover inline overrides and fallback
     if (window.innerWidth > 720) {
       document.querySelectorAll(".match-card").forEach((card) => {
         card.style.removeProperty("font-size");
       });
+      document.documentElement.classList.remove("has-overflow-exception");
+      document.documentElement.style.removeProperty("--exception-min-card-height");
+      lastFallbackKey = null;
       return;
     }
+
+    // Reset overflow-exception before measurement to get accurate baseline
+    document.documentElement.classList.remove("has-overflow-exception");
+    document.documentElement.style.removeProperty("--exception-min-card-height");
+
     const cards = document.querySelectorAll(".match-card");
+    let maxOverflowHeight = 0; // tracks the largest required height for fallback
+
     cards.forEach((card) => {
       const slot = card.parentElement;
       if (!slot) return;
@@ -359,29 +385,43 @@ import { createTimerManager } from "./timer-manager.mjs";
       const contentHeight = slotHeight - padTop - padBottom - borderTop - borderBottom;
       if (contentHeight <= 0) return;
       // Measure text height using Range
-      const range = document.createRange();
-      range.selectNodeContents(card);
-      const rects = range.getClientRects();
-      let textHeight = 0;
-      for (let i = 0; i < rects.length; i++) {
-        textHeight += rects[i].height;
-      }
+      let textHeight = measureCardTextHeight(card);
       // If text overflows, reduce font size stepwise until it fits or hits floor
       let fontSize = parseFloat(cs.fontSize);
       while (textHeight > contentHeight && fontSize > MIN_MOBILE_FONT) {
         fontSize = Math.max(MIN_MOBILE_FONT, fontSize - 0.5);
         card.style.fontSize = fontSize + "px";
         // Re-measure
-        const newRange = document.createRange();
-        newRange.selectNodeContents(card);
-        const newRects = newRange.getClientRects();
-        textHeight = 0;
-        for (let i = 0; i < newRects.length; i++) {
-          textHeight += newRects[i].height;
-        }
+        textHeight = measureCardTextHeight(card);
         if (fontSize <= MIN_MOBILE_FONT) break;
       }
+      // After fitting, check if text still overflows at floor
+      if (textHeight > contentHeight && fontSize <= MIN_MOBILE_FONT) {
+        // Compute required min card height: text + padding + borders + safety margin
+        const requiredHeight =
+          textHeight + padTop + padBottom + borderTop + borderBottom + EXCEPTION_SAFETY_MARGIN;
+        if (requiredHeight > maxOverflowHeight) {
+          maxOverflowHeight = requiredHeight;
+        }
+      }
     });
+
+    // Apply overflow-exception fallback if any card still overflows
+    if (maxOverflowHeight > 0) {
+      // Always reapply fallback when overflow detected (after baseline reset above)
+      // This ensures consecutive passes on the same long phrase maintain the fallback
+      lastFallbackKey = `${state.roundIndex}-${window.innerWidth}-${Math.round(maxOverflowHeight)}`;
+      lastFallbackMinHeight = maxOverflowHeight;
+      document.documentElement.style.setProperty(
+        "--exception-min-card-height",
+        `${Math.ceil(maxOverflowHeight)}px`
+      );
+      document.documentElement.classList.add("has-overflow-exception");
+    } else {
+      // No overflow — ensure fallback is cleared
+      lastFallbackKey = null;
+      lastFallbackMinHeight = 0;
+    }
   }
 
   function scheduleFitCardText() {
