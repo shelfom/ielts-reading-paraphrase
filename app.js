@@ -1,3 +1,5 @@
+import { createTimerManager } from "./timer-manager.mjs";
+
 (() => {
   "use strict";
 
@@ -184,60 +186,20 @@
     }
   }
 
+  const timers = createTimerManager();
+  const schedule = timers.schedule;
+  const cancelTimers = timers.cancelAll;
+  const pauseTimers = timers.pauseAll;
+  const resumeTimers = timers.resumeAll;
+
   const state = {
     roundIndex: 0,
     runs: new Map(),
-    navToken: 0,
-    timers: new Set(),
     celebrationOpen: false,
     celebrationOpenedAt: 0,
     celebrationPointerStarted: false,
-    pausedTimers: [],
     contentsOpen: false,
   };
-
-  function schedule(callback, delay) {
-    const token = state.navToken;
-    const createdAt = performance.now();
-    const timer = window.setTimeout(() => {
-      state.timers.delete(timer);
-      if (token === state.navToken) callback();
-    }, delay);
-    state.timers.add(timer);
-    timer.__cb = callback;
-    timer.__delay = delay;
-    timer.__createdAt = createdAt;
-    timer.__token = token;
-    return timer;
-  }
-
-  function cancelTimers() {
-    state.timers.forEach((timer) => window.clearTimeout(timer));
-    state.timers.clear();
-    state.pausedTimers = [];
-    state.navToken += 1;
-  }
-
-  function pauseTimers() {
-    const now = performance.now();
-    state.pausedTimers = [];
-    state.timers.forEach((timer) => {
-      const elapsed = now - timer.__createdAt;
-      const remaining = Math.max(0, timer.__delay - elapsed);
-      state.pausedTimers.push({ cb: timer.__cb, remaining, token: timer.__token });
-      window.clearTimeout(timer);
-    });
-    state.timers.clear();
-  }
-
-  function resumeTimers() {
-    const paused = state.pausedTimers;
-    state.pausedTimers = [];
-    for (const entry of paused) {
-      if (entry.token !== state.navToken) continue;
-      schedule(entry.cb, entry.remaining);
-    }
-  }
 
   function currentRound() {
     return rounds[state.roundIndex];

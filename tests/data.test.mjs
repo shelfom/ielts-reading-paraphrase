@@ -60,6 +60,19 @@ test("public copy and data release identify Books 11–20", () => {
   assert.match(html, /enhance biodiversity → create refuges for species threatened by predation/);
 });
 
+test("authoritative spelling: Book 11 Test 1 Passage 1 contains disadvantage → drawback", () => {
+  const section = sections[0];
+  assert.equal(section.book, 11);
+  assert.equal(section.test, 1);
+  assert.equal(section.passage, 1);
+  const match = section.pairs.find((pair) => pair.p === "drawback");
+  assert.ok(match, "expected a pair mapping to drawback");
+  assert.equal(match.w, "disadvantage");
+  // Guard against the historical typo anywhere in the dataset.
+  const allSource = sections.flatMap((s) => [s.title, ...s.pairs.flatMap((pp) => [pp.w, pp.p])]).join("\n");
+  assert.equal(allSource.includes("diadvantage"), false);
+});
+
 test("contents dialog markup exists with correct selectors", () => {
   assert.match(html, /id="contentsButton"/);
   assert.match(html, /id="contentsDialog"/);
