@@ -56,7 +56,7 @@ test("all 120 passages receive distinct completion messages", () => {
 
 test("public copy and data release identify Books 11–20", () => {
   assert.match(html, /Cambridge IELTS 11–20/);
-  assert.match(html, /sections\.js\?v=contents-v16/);
+  assert.match(html, /sections\.js\?v=contents-v18/);
   assert.match(html, /enhance biodiversity → create refuges for species threatened by predation/);
 });
 
@@ -174,8 +174,8 @@ test("passageTitle heading has tabindex for programmatic focus", () => {
   assert.match(html, /id="passageTitle"\s+tabindex="-1"/);
 });
 
-test("asset query strings bumped to contents-v16 for cache busting", () => {
-  assert.match(html, /styles\.css\?v=contents-v16/);
-  assert.match(html, /app\.js\?v=contents-v16/);
-  assert.match(html, /sections\.js\?v=contents-v16/);
+test("asset query strings bumped to contents-v18 for cache busting", () => {
+  assert.match(html, /styles\.css\?v=contents-v18/);
+  assert.match(html, /app\.js\?v=contents-v18/);
+  assert.match(html, /sections\.js\?v=contents-v18/);
 });

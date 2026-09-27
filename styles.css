@@ -967,17 +967,21 @@ h1 {
   }
 
   .match-card {
-    padding: 8px 10px;
-    font-size: clamp(1rem, 4.2vw, 1.08rem);
-    line-height: 1.18;
+    padding: 6px 8px;
+    font-size: clamp(0.92rem, 3.8vw, 1rem);
+    line-height: 1.12;
+  }
+
+  .match-card.is-medium {
+    font-size: clamp(0.82rem, 3.4vw, 0.88rem);
   }
 
   .match-card.is-long {
-    font-size: 0.86rem;
+    font-size: clamp(0.76rem, 3vw, 0.82rem);
   }
 
   .match-card.is-very-long {
-    font-size: 0.76rem;
+    font-size: clamp(0.7rem, 2.8vw, 0.76rem);
   }
 
   .navigation {

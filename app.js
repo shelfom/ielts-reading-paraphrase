@@ -35,6 +35,7 @@ import { createTimerManager } from "./timer-manager.mjs";
     finishRestart: $("finishRestart"),
     celebrationContentsBtn: $("celebrationContentsBtn"),
     finishContentsBtn: $("finishContentsBtn"),
+    matchBoard: $("matchBoard"),
   };
 
   const rounds = [];
@@ -253,6 +254,7 @@ import { createTimerManager } from "./timer-manager.mjs";
     button.textContent = label;
     if (label.length > 90) button.classList.add("is-very-long");
     else if (label.length > 58) button.classList.add("is-long");
+    else if (label.length > 35) button.classList.add("is-medium");
     button.setAttribute("aria-label", `${side === "left" ? "Question" : "Passage"}: ${label}`);
     button.addEventListener("click", () => choose(side, pairIndex));
     slot.append(button);
@@ -326,6 +328,68 @@ import { createTimerManager } from "./timer-manager.mjs";
     run.matched.forEach((pairIndex) => clearPairVisually(pairIndex, false));
     if (run.selected) findCard(run.selected.side, run.selected.pairIndex)?.classList.add("is-selected");
     updateProgress();
+    scheduleFitCardText();
+  }
+
+  /* ── Measured text fitter (app-level, called from render + resize observer) ── */
+  const MIN_MOBILE_FONT = 10; // px floor — never shrink below readable size
+
+  function fitCardText() {
+    // Desktop uses CSS only; clear any leftover inline overrides
+    if (window.innerWidth > 720) {
+      document.querySelectorAll(".match-card").forEach((card) => {
+        card.style.removeProperty("font-size");
+      });
+      return;
+    }
+    const cards = document.querySelectorAll(".match-card");
+    cards.forEach((card) => {
+      const slot = card.parentElement;
+      if (!slot) return;
+      // Clear any previous inline override to measure CSS base first
+      card.style.removeProperty("font-size");
+      const slotHeight = slot.clientHeight;
+      if (!slotHeight) return;
+      // Use actual card content-box: clientHeight minus vertical padding minus borders
+      const cs = getComputedStyle(card);
+      const padTop = parseFloat(cs.paddingTop) || 0;
+      const padBottom = parseFloat(cs.paddingBottom) || 0;
+      const borderTop = parseFloat(cs.borderTopWidth) || 0;
+      const borderBottom = parseFloat(cs.borderBottomWidth) || 0;
+      const contentHeight = slotHeight - padTop - padBottom - borderTop - borderBottom;
+      if (contentHeight <= 0) return;
+      // Measure text height using Range
+      const range = document.createRange();
+      range.selectNodeContents(card);
+      const rects = range.getClientRects();
+      let textHeight = 0;
+      for (let i = 0; i < rects.length; i++) {
+        textHeight += rects[i].height;
+      }
+      // If text overflows, reduce font size stepwise until it fits or hits floor
+      let fontSize = parseFloat(cs.fontSize);
+      while (textHeight > contentHeight && fontSize > MIN_MOBILE_FONT) {
+        fontSize = Math.max(MIN_MOBILE_FONT, fontSize - 0.5);
+        card.style.fontSize = fontSize + "px";
+        // Re-measure
+        const newRange = document.createRange();
+        newRange.selectNodeContents(card);
+        const newRects = newRange.getClientRects();
+        textHeight = 0;
+        for (let i = 0; i < newRects.length; i++) {
+          textHeight += newRects[i].height;
+        }
+        if (fontSize <= MIN_MOBILE_FONT) break;
+      }
+    });
+  }
+
+  function scheduleFitCardText() {
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => requestAnimationFrame(fitCardText));
+    } else {
+      requestAnimationFrame(fitCardText);
+    }
   }
 
   function createSparks(slot) {
@@ -623,6 +687,15 @@ import { createTimerManager } from "./timer-manager.mjs";
   const savedTheme = localStorage.getItem("ielts-paraphrase-theme");
   setTheme(queryTheme === "dark" || queryTheme === "light" ? queryTheme : savedTheme || "light");
   populateContents();
+  // Observe matchBoard size changes (layout/height changes affect available card space)
+  if (typeof ResizeObserver !== "undefined" && elements.matchBoard) {
+    let rafId = 0;
+    const resizeObserver = new ResizeObserver(() => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(fitCardText);
+    });
+    resizeObserver.observe(elements.matchBoard);
+  }
   render();
 
   window.__APP__ = { SECTIONS, rounds, state, goNext, goBack, restartRound, pepTalkFor, bookEntries, openContents, closeContents, jumpToBook };
