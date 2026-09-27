@@ -21,6 +21,10 @@
     nextButton: $("nextButton"),
     restartButton: $("restartButton"),
     themeButton: $("themeButton"),
+    contentsButton: $("contentsButton"),
+    contentsDialog: $("contentsDialog"),
+    contentsClose: $("contentsClose"),
+    contentsList: $("contentsList"),
     passageCelebration: $("passageCelebration"),
     celebrationCard: $("celebrationCard"),
     celebrationMessage: $("celebrationMessage"),
@@ -55,6 +59,110 @@
       offset += size;
     });
   });
+
+  /* ── Book directory metadata (derived from sections, not hardcoded) ── */
+  const bookEntries = [];
+  {
+    const seen = new Map();
+    SECTIONS.forEach((section, sectionIndex) => {
+      if (!seen.has(section.book)) {
+        seen.set(section.book, sectionIndex);
+      }
+    });
+    const sortedBooks = [...seen.keys()].sort((a, b) => a - b);
+    for (const book of sortedBooks) {
+      const firstSectionIndex = seen.get(book);
+      const firstRoundIndex = rounds.findIndex((r) => r.sectionIndex === firstSectionIndex);
+      bookEntries.push({ book, firstSectionIndex, firstRoundIndex });
+    }
+  }
+
+  /* ── Populate contents dialog ── */
+  function populateContents() {
+    elements.contentsList.replaceChildren();
+    for (const entry of bookEntries) {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "contents-book-btn";
+      btn.dataset.book = String(entry.book);
+      btn.textContent = `Cambridge IELTS ${entry.book}`;
+      btn.setAttribute("aria-label", `Go to Cambridge IELTS ${entry.book}`);
+      btn.addEventListener("click", () => jumpToBook(entry.book));
+      li.append(btn);
+      elements.contentsList.append(li);
+    }
+  }
+
+  function updateContentsCurrent() {
+    const currentBook = SECTIONS[rounds[state.roundIndex]?.sectionIndex]?.book;
+    elements.contentsList.querySelectorAll(".contents-book-btn").forEach((btn) => {
+      btn.classList.toggle("is-current", Number(btn.dataset.book) === currentBook);
+      btn.removeAttribute("aria-current");
+      if (Number(btn.dataset.book) === currentBook) btn.setAttribute("aria-current", "true");
+    });
+  }
+
+  let contentsOpener = null;
+
+  function openContents() {
+    contentsOpener = document.activeElement;
+    cancelTimers();
+    updateContentsCurrent();
+    elements.contentsDialog.showModal();
+    const currentBtn = elements.contentsList.querySelector(".contents-book-btn.is-current") ||
+      elements.contentsList.querySelector(".contents-book-btn");
+    if (currentBtn) currentBtn.focus();
+  }
+
+  function closeContents() {
+    elements.contentsDialog.close();
+    const opener = contentsOpener;
+    contentsOpener = null;
+    if (opener && opener.isConnected) {
+      opener.focus();
+    } else {
+      elements.passageTitle.focus();
+    }
+  }
+
+  function jumpToBook(book) {
+    const entry = bookEntries.find((e) => e.book === book);
+    if (!entry || entry.firstRoundIndex < 0) return;
+    cancelTimers();
+    state.celebrationOpen = false;
+    state.celebrationPointerStarted = false;
+    elements.passageCelebration.hidden = true;
+    elements.finishDialog.hidden = true;
+    elements.contentsDialog.close();
+    contentsOpener = null;
+    state.roundIndex = entry.firstRoundIndex;
+    render();
+    elements.passageTitle.focus({ preventScroll: true });
+  }
+
+  /* ── Focus trap inside contents dialog ── */
+  function trapContentsFocus(event) {
+    if (!elements.contentsDialog.open) return;
+    if (event.key !== "Tab") return;
+    const focusable = elements.contentsDialog.querySelectorAll(
+      'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey) {
+      if (document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+  }
 
   const state = {
     roundIndex: 0,
@@ -396,6 +504,7 @@
 
   function goNext() {
     if (state.celebrationOpen) return;
+    if (elements.contentsDialog.open) return;
     if (currentRun().completing) return;
     if (state.roundIndex === rounds.length - 1) {
       elements.finishDialog.hidden = false;
@@ -407,6 +516,7 @@
 
   function goBack() {
     if (state.celebrationOpen) return;
+    if (elements.contentsDialog.open) return;
     if (state.roundIndex === 0) return;
     state.roundIndex -= 1;
     state.runs.delete(state.roundIndex);
@@ -445,6 +555,16 @@
   elements.backButton.addEventListener("click", goBack);
   elements.nextButton.addEventListener("click", goNext);
   elements.restartButton.addEventListener("click", restartRound);
+  elements.contentsButton.addEventListener("click", openContents);
+  elements.contentsClose.addEventListener("click", closeContents);
+  elements.contentsDialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeContents();
+  });
+  elements.contentsDialog.addEventListener("click", (event) => {
+    if (event.target === elements.contentsDialog) closeContents();
+  });
+  elements.contentsDialog.addEventListener("keydown", trapContentsFocus);
   elements.celebrationNext.addEventListener("pointerdown", () => {
     if (state.celebrationOpen && !elements.celebrationNext.disabled) state.celebrationPointerStarted = true;
   });
@@ -459,6 +579,7 @@
 
   document.addEventListener("keydown", (event) => {
     if (state.celebrationOpen) return;
+    if (elements.contentsDialog.open) return;
     if (event.altKey && event.key === "ArrowLeft") goBack();
     if (event.altKey && event.key === "ArrowRight") goNext();
   });
@@ -466,7 +587,8 @@
   const queryTheme = new URLSearchParams(location.search).get("theme");
   const savedTheme = localStorage.getItem("ielts-paraphrase-theme");
   setTheme(queryTheme === "dark" || queryTheme === "light" ? queryTheme : savedTheme || "light");
+  populateContents();
   render();
 
-  window.__APP__ = { SECTIONS, rounds, state, goNext, goBack, restartRound, pepTalkFor };
+  window.__APP__ = { SECTIONS, rounds, state, goNext, goBack, restartRound, pepTalkFor, bookEntries, openContents, closeContents, jumpToBook };
 })();

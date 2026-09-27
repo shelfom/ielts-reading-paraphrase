@@ -22,6 +22,10 @@
         </div>
         <div class="lesson-actions">
         <div class="header-actions">
+          <button class="icon-button" id="contentsButton" type="button" aria-label="Open contents directory">
+            <span aria-hidden="true">☰</span>
+            <span class="contents-label">Contents</span>
+          </button>
           <button class="icon-button" id="themeButton" type="button" aria-label="Switch to dark theme">
             <span class="sun" aria-hidden="true">☼</span>
             <span class="theme-label">Dark</span>
@@ -94,7 +98,18 @@
       </div>
     </div>
 
+    <dialog class="contents-dialog" id="contentsDialog" aria-labelledby="contentsTitle">
+      <div class="contents-card">
+        <div class="contents-head">
+          <h2 id="contentsTitle">Contents</h2>
+          <button class="contents-close" id="contentsClose" type="button" aria-label="Close contents">✕</button>
+        </div>
+        <p class="contents-subtitle">Cambridge IELTS · select a book</p>
+        <ul class="contents-list" id="contentsList" role="list"></ul>
+      </div>
+    </dialog>
+
     <script type="module" src="sections.js?v=7"></script>
-    <script type="module" src="app.js?v=12"></script>
+    <script type="module" src="app.js?v=13"></script>
   </body>
 </html>

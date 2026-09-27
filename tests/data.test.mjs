@@ -59,3 +59,76 @@ test("public copy and data release identify Books 11–20", () => {
   assert.match(html, /sections\.js\?v=7/);
   assert.match(html, /enhance biodiversity → create refuges for species threatened by predation/);
 });
+
+test("contents dialog markup exists with correct selectors", () => {
+  assert.match(html, /id="contentsButton"/);
+  assert.match(html, /id="contentsDialog"/);
+  assert.match(html, /id="contentsList"/);
+  assert.match(html, /id="contentsClose"/);
+  assert.match(html, /aria-label="Open contents directory"/);
+});
+
+test("book directory metadata is sorted and maps to correct first rounds", () => {
+  // Derive book entries the same way app.js does
+  const seen = new Map();
+  sections.forEach((section, sectionIndex) => {
+    if (!seen.has(section.book)) {
+      seen.set(section.book, sectionIndex);
+    }
+  });
+  const sortedBooks = [...seen.keys()].sort((a, b) => a - b);
+  assert.deepEqual(sortedBooks, [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
+
+  // Build rounds to verify firstRoundIndex mapping
+  const rounds = [];
+  sections.forEach((section, sectionIndex) => {
+    const pairCount = section.pairs.length;
+    const sizes = [];
+    let remaining = pairCount;
+    while (remaining > 5) {
+      sizes.push(5);
+      remaining -= 5;
+    }
+    if (remaining > 0) sizes.push(remaining);
+    sizes.forEach((size, roundIndex) => {
+      const start = roundIndex === 0 ? 0 : sizes.slice(0, roundIndex).reduce((a, b) => a + b, 0);
+      const end = start + size;
+      const left = section.pairs.slice(start, end).map((pair, index) => ({ ...pair, id: `${sectionIndex}-${roundIndex}-${index}` }));
+      const right = [...left].sort(() => 0.5 - Math.random());
+      rounds.push({ sectionIndex, roundIndex, size, left, right, start, end });
+    });
+  });
+
+  // Verify each book's first section and first round
+  for (const book of sortedBooks) {
+    const firstSectionIndex = seen.get(book);
+    const firstSection = sections[firstSectionIndex];
+    assert.equal(firstSection.book, book, `Book ${book} first section should have matching book number`);
+    assert.equal(firstSection.test, 1, `Book ${book} first section should be Test 1`);
+    assert.equal(firstSection.passage, 1, `Book ${book} first section should be Passage 1`);
+
+    const firstRoundIndex = rounds.findIndex((r) => r.sectionIndex === firstSectionIndex);
+    assert.ok(firstRoundIndex >= 0, `Book ${book} should have a valid first round index`);
+    assert.equal(rounds[firstRoundIndex].roundIndex, 0, `Book ${book} first round should be round 0`);
+  }
+});
+
+test("book directory jump cancels timers and clears celebration state", () => {
+  // Verify the app.js source contains the expected jumpToBook logic
+  assert.match(appSource, /function jumpToBook\(book\)/);
+  assert.match(appSource, /cancelTimers\(\)/);
+  assert.match(appSource, /state\.celebrationOpen = false/);
+  assert.match(appSource, /state\.celebrationPointerStarted = false/);
+  assert.match(appSource, /elements\.passageCelebration\.hidden = true/);
+  assert.match(appSource, /elements\.finishDialog\.hidden = true/);
+  assert.match(appSource, /elements\.contentsDialog\.close\(\)/);
+});
+
+test("contents dialog blocks navigation while open", () => {
+  // Verify goNext/goBack check for contents dialog
+  assert.match(appSource, /if \(elements\.contentsDialog\.open\) return;/);
+  // Verify keydown handler also checks
+  const keydownMatch = appSource.match(/document\.addEventListener\("keydown",[\s\S]*?\}\);/);
+  assert.ok(keydownMatch);
+  assert.match(keydownMatch[0], /elements\.contentsDialog\.open/);
+});
