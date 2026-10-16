@@ -17,6 +17,12 @@ Match the words in the question to the words in the passage — the core IELTS R
 - Contents menu for every book, progress kept on your device
 - Light and dark themes, works on phones
 
+## How it works · 图解
+
+Why this drill exists and how to use it, in five cards (Chinese).
+
+<a href="docs/cards/01.jpg"><img src="docs/cards/thumb-01.jpg" width="150" alt="雅思阅读同义替换 1/5"></a> <a href="docs/cards/02.jpg"><img src="docs/cards/thumb-02.jpg" width="150" alt="雅思阅读同义替换 2/5"></a> <a href="docs/cards/03.jpg"><img src="docs/cards/thumb-03.jpg" width="150" alt="雅思阅读同义替换 3/5"></a> <a href="docs/cards/04.jpg"><img src="docs/cards/thumb-04.jpg" width="150" alt="雅思阅读同义替换 4/5"></a> <a href="docs/cards/05.jpg"><img src="docs/cards/thumb-05.jpg" width="150" alt="雅思阅读同义替换 5/5"></a>
+
 ## Run it locally
 
 ```bash
